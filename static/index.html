@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>বাংলা স্ক্যানার</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#0b5d4b;--green-d:#08443a;--red:#e03a3e;--bg:#eef3f0;--ink:#16211d;--mute:#5d6e67;--line:#cfdad4;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Hind Siliguri",system-ui,sans-serif}
+header{background:var(--green);color:#fff;padding:22px 20px}
+header h1{margin:0;font-size:28px;font-weight:700;display:flex;align-items:center;gap:12px}
+header h1::before{content:"";width:16px;height:16px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+header p{margin:2px 0 0 28px;opacity:.85;font-size:15px}
+main{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;gap:20px;grid-template-columns:1fr 1fr}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
+h2{margin:0 0 12px;font-size:19px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+button,label.btn{font:inherit;font-weight:500;padding:10px 16px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green);cursor:pointer}
+button.primary{background:var(--green);color:#fff}
+button:hover:not(:disabled),label.btn:hover{background:var(--green-d);color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+input[type=file]{display:none}
+#thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;min-height:60px}
+#thumbs figure{margin:0;position:relative}
+#thumbs img{width:100%;height:130px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+#thumbs .pdf{height:130px;display:grid;place-items:center;border:1px dashed var(--mute);border-radius:6px;color:var(--mute);font-size:14px;text-align:center;padding:6px}
+#thumbs button{position:absolute;top:4px;right:4px;padding:0 8px;border-radius:50%;border-color:var(--red);color:var(--red);line-height:24px}
+.empty{color:var(--mute);font-size:15px}
+textarea{width:100%;min-height:360px;resize:vertical;font:inherit;line-height:1.7;padding:12px;border:1.5px solid var(--line);border-radius:8px}
+#status{min-height:24px;margin-top:8px;font-size:15px;color:var(--mute)}
+#status.err{color:var(--red)}
+</style>
+</head>
+<body>
+<header>
+  <h1>বাংলা স্ক্যানার</h1>
+  <p>হাতের লেখা বা ছাপা নথির ছবি তুলুন, সম্পাদনাযোগ্য লেখা পান</p>
+</header>
+<main>
+  <section>
+    <h2>নথি</h2>
+    <div class="row">
+      <label class="btn" tabindex="0">ছবি তুলুন<input id="cam" type="file" accept="image/*" capture="environment"></label>
+      <label class="btn" tabindex="0">ফাইল বেছে নিন<input id="up" type="file" accept="image/*,application/pdf" multiple></label>
+    </div>
+    <div id="thumbs"><p class="empty">এখনো কোনো ফাইল নেই। পরিষ্কার আলোয় ছবি তুলুন।</p></div>
+    <div class="row" style="margin-top:14px">
+      <button id="go" class="primary" disabled>লেখায় রূপান্তর করুন</button>
+    </div>
+    <div id="status" role="status"></div>
+  </section>
+  <section>
+    <h2>ফলাফল (সম্পাদনা করুন)</h2>
+    <textarea id="out" placeholder="রূপান্তরিত লেখা এখানে আসবে…"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button id="copy">কপি</button>
+      <button id="txt">.txt ডাউনলোড</button>
+      <button id="docx">.docx ডাউনলোড</button>
+    </div>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let files=[];
+function render(){
+  const t=$("thumbs"); t.innerHTML="";
+  if(!files.length){t.innerHTML='<p class="empty">এখনো কোনো ফাইল নেই। পরিষ্কার আলোয় ছবি তুলুন।</p>'}
+  files.forEach((f,i)=>{
+    const fig=document.createElement("figure");
+    if(f.type==="application/pdf"){fig.innerHTML=`<div class="pdf">${f.name}</div>`}
+    else{const im=new Image();im.src=URL.createObjectURL(f);fig.appendChild(im)}
+    const b=document.createElement("button");b.textContent="×";b.setAttribute("aria-label","সরান");
+    b.onclick=()=>{files.splice(i,1);render()};fig.appendChild(b);t.appendChild(fig);
+  });
+  $("go").disabled=!files.length;
+}
+for(const id of ["cam","up"]){
+  $(id).onchange=e=>{files.push(...e.target.files);e.target.value="";render()};
+}
+document.querySelectorAll("label.btn").forEach(l=>l.onkeydown=e=>{if(e.key==="Enter")l.querySelector("input").click()});
+function status(m,err){const s=$("status");s.textContent=m;s.className=err?"err":""}
+$("go").onclick=async()=>{
+  const fd=new FormData(); files.forEach(f=>fd.append("files",f));
+  $("go").disabled=true; status("পড়া হচ্ছে… একটু অপেক্ষা করুন");
+  try{
+    const r=await fetch("/api/ocr",{method:"POST",body:fd});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.detail||"ত্রুটি হয়েছে");
+    $("out").value=j.text; status("সম্পন্ন। ভুল থাকলে নিচে ঠিক করে নিন।");
+  }catch(e){status(e.message,true)}
+  $("go").disabled=!files.length;
+};
+function save(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click()}
+$("copy").onclick=async()=>{await navigator.clipboard.writeText($("out").value);status("কপি হয়েছে")};
+$("txt").onclick=()=>save(new Blob([$("out").value],{type:"text/plain;charset=utf-8"}),"scan.txt");
+$("docx").onclick=async()=>{
+  const r=await fetch("/api/docx",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:$("out").value})});
+  save(await r.blob(),"scan.docx");
+};
+</script>
+</body>
+</html>

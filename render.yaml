@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: bangla-scanner
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false   # set in Render dashboard
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
